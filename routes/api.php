@@ -36,11 +36,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
     Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
     Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar']);
+    Route::put('/profile/sidebar-settings', [ProfileController::class, 'updateSidebarSettings']);
 
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
     // Reports
+    Route::get('/reports', [ReportController::class, 'index']);
     Route::get('/reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
     Route::get('/reports/expenses-by-category-month', [ReportController::class, 'expensesByCategoryMonth']);
 

@@ -39,6 +39,12 @@ class Budget extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class, 'category_id', 'category_id')
+                    ->where('user_id', $this->user_id);
+    }
+
     // Calculate total available budget (including rollover)
     public function getTotalBudgetAttribute(): float
     {

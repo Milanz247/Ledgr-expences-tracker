@@ -23,6 +23,7 @@ class User extends Authenticatable
         'email',
         'password',
         'profile_picture',
+        'sidebar_settings',
     ];
 
     /**
@@ -45,6 +46,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'sidebar_settings' => 'array',
         ];
     }
 

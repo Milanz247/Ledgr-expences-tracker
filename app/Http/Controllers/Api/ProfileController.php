@@ -136,4 +136,48 @@ class ProfileController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Update user sidebar settings.
+     */
+    public function updateSidebarSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'settings' => ['required', 'array'],
+            'settings.dashboard' => ['boolean'],
+            'settings.expenses' => ['boolean'],
+            'settings.incomes' => ['boolean'],
+            'settings.budgets' => ['boolean'],
+            'settings.recurring' => ['boolean'],
+            'settings.loans' => ['boolean'],
+            'settings.bank_accounts' => ['boolean'],
+            'settings.fund_sources' => ['boolean'],
+            'settings.installments' => ['boolean'],
+            'settings.categories' => ['boolean'],
+            'settings.reports' => ['boolean'],
+        ]);
+
+        $user = $request->user();
+
+        // Merge with existing settings to handle partial updates
+        $currentSettings = $user->sidebar_settings ?? [
+            'dashboard' => true, 
+            'expenses' => true, 
+            'incomes' => true, 
+            'loans' => true, 
+            'installments' => true, 
+            'reports' => true
+        ];
+
+        $newSettings = array_merge($currentSettings, $validated['settings']);
+
+        $user->update([
+            'sidebar_settings' => $newSettings,
+        ]);
+
+        return response()->json([
+            'message' => 'Sidebar settings updated successfully',
+            'settings' => $newSettings,
+        ]);
+    }
 }
