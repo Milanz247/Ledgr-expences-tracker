@@ -15,14 +15,6 @@
         "laravel/tinker": "^2.10.1"
     },
     "require-dev": {
-        "fakerphp/faker": "^1.23",
-        "laravel/pail": "^1.2.2",
-        "laravel/pint": "^1.24",
-        "laravel/sail": "^1.41",
-        "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.6",
-        "pestphp/pest": "^3.8",
-        "pestphp/pest-plugin-laravel": "^3.2"
     },
     "autoload": {
         "psr-4": {
@@ -31,27 +23,12 @@
             "Database\\Seeders\\": "database/seeders/"
         }
     },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/"
-        }
-    },
     "scripts": {
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
-            "@php artisan migrate --force",
-            "npm install",
-            "npm run build"
-        ],
-        "dev": [
-            "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"npm run dev\" --names='server,queue,vite'"
-        ],
-        "test": [
-            "@php artisan config:clear --ansi",
-            "@php artisan test"
+            "@php artisan migrate --force"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
