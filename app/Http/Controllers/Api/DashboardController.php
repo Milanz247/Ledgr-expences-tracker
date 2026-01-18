@@ -128,6 +128,23 @@ class DashboardController extends Controller
             'category_breakdown' => $categoryBreakdown,
             'monthly_trend' => $monthlyTrend,
             'upcoming_bills' => $upcomingBills,
+            'upcoming_installments' => $user->installments()
+                ->where('status', 'ongoing')
+                ->with('category')
+                ->get()
+                ->map(function ($inst) {
+                    $dueDate = Carbon::parse($inst->start_date)->addMonths($inst->paid_months);
+                    return [
+                        'id' => $inst->id,
+                        'name' => $inst->item_name,
+                        'amount' => floatval($inst->monthly_amount),
+                        'category_name' => $inst->category->name,
+                        'due_date' => $dueDate->toDateString(),
+                        'days_left' => Carbon::now()->diffInDays($dueDate, false),
+                    ];
+                })
+                ->filter(fn($i) => $i['days_left'] >= 0 && $i['days_left'] <= 30) // Show next 30 days due
+                ->values(),
         ]);
     }
 }

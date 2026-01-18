@@ -119,4 +119,12 @@ class User extends Authenticatable
     {
         return $this->hasOne(ReportSetting::class);
     }
+
+    /**
+     * Get the installments for the user.
+     */
+    public function installments()
+    {
+        return $this->hasMany(Installment::class);
+    }
 }

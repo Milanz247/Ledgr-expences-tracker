@@ -82,4 +82,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Payment Sources (merged: banks, funds, loans)
     Route::get('/payment-sources', [PaymentSourceController::class, 'index']);
+
+    // Installments (EMI)
+    Route::apiResource('installments', \App\Http\Controllers\Api\InstallmentController::class);
+    Route::post('/installments/{installment}/pay', [\App\Http\Controllers\Api\InstallmentController::class, 'pay']);
 });
