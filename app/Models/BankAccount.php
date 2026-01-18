@@ -19,6 +19,9 @@ class BankAccount extends Model
         'bank_name',
         'account_number',
         'balance',
+        'account_holder_name',
+        'branch_code',
+        'color',
     ];
 
     /**

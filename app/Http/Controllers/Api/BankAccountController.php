@@ -26,6 +26,9 @@ class BankAccountController extends Controller
             'bank_name' => 'required|string|max:255',
             'account_number' => 'required|string|max:255',
             'balance' => 'required|numeric|min:0',
+            'account_holder_name' => 'nullable|string|max:255',
+            'branch_code' => 'nullable|string|max:255',
+            'color' => 'nullable|string|max:255',
         ]);
 
         $bankAccount = $request->user()->bankAccounts()->create($request->all());
@@ -60,6 +63,9 @@ class BankAccountController extends Controller
             'bank_name' => 'sometimes|required|string|max:255',
             'account_number' => 'sometimes|required|string|max:255',
             'balance' => 'sometimes|required|numeric|min:0',
+            'account_holder_name' => 'nullable|string|max:255',
+            'branch_code' => 'nullable|string|max:255',
+            'color' => 'nullable|string|max:255',
         ]);
 
         $bankAccount->update($request->all());

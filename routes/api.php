@@ -45,6 +45,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports', [ReportController::class, 'index']);
     Route::get('/reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
     Route::get('/reports/expenses-by-category-month', [ReportController::class, 'expensesByCategoryMonth']);
+    
+    // Exports
+    Route::get('/export/transactions', [\App\Http\Controllers\Api\ExportController::class, 'exportTransactions']);
 
     // Report Settings
     Route::get('/report-settings', [\App\Http\Controllers\Api\ReportSettingsController::class, 'getSettings']);
