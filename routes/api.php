@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\IncomeController;
 use App\Http\Controllers\Api\FundSourceController;
 use App\Http\Controllers\Api\LoanController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PaymentSourceController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RecurringTransactionController;
@@ -18,6 +19,11 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Password Reset routes
+Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
+Route::post('/resend-otp', [PasswordResetController::class, 'resendOtp']);
 
 // Protected routes (require authentication)
 Route::middleware('auth:sanctum')->group(function () {
