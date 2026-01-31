@@ -86,7 +86,7 @@ class ReportController extends Controller
         
         $liquidityMix = [
             ['name' => 'Bank Accounts', 'value' => (float)$totalBank, 'fill' => '#10b981'], // Emerald-500
-            ['name' => 'Cash & Wallets', 'value' => (float)$totalCash, 'fill' => '#f59e0b'], // Amber-500
+            ['name' => 'Wallet', 'value' => (float)$totalCash, 'fill' => '#f59e0b'], // Amber-500
         ];
 
         // Net Worth (Simple Calculation: Assets - Liabilities)

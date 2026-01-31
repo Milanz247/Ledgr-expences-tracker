@@ -93,11 +93,91 @@ class LoanController extends Controller
             'due_date' => 'nullable|date',
         ]);
 
-        $loan->update($request->only(['lender_name', 'amount', 'description', 'due_date']));
+        // Store original values BEFORE any modifications
+        $originalAmount = $loan->amount;
+        $originalBalance = $loan->balance_remaining;
+
+        \Log::info('Loan Update - Before', [
+            'loan_id' => $loan->id,
+            'original_amount' => $originalAmount,
+            'original_balance' => $originalBalance,
+            'request_amount' => $request->amount,
+        ]);
+
+        // Update basic fields 
+        $loan->lender_name = $request->lender_name ?? $loan->lender_name;
+        $loan->description = $request->description ?? $loan->description;
+        $loan->due_date = $request->due_date ?? $loan->due_date;
+
+        // If amount is being updated, recalculate balance_remaining
+        if ($request->has('amount') && $request->amount != $originalAmount) {
+            $newAmount = $request->amount;
+            
+            // Check if current data is corrupted (balance > amount)
+            if ($originalBalance > $originalAmount) {
+                \Log::warning('Loan data corrupted - balance greater than amount', [
+                    'loan_id' => $loan->id,
+                    'amount' => $originalAmount,
+                    'balance' => $originalBalance,
+                ]);
+                // If data is corrupted, reset balance to new amount (assume unpaid)
+                $loan->amount = $newAmount;
+                $loan->balance_remaining = $newAmount;
+                $loan->status = 'unpaid';
+            } else {
+                // Calculate how much has already been paid
+                $paidAmount = $originalAmount - $originalBalance;
+                
+                \Log::info('Loan Update - Calculation', [
+                    'old_amount' => $originalAmount,
+                    'new_amount' => $newAmount,
+                    'old_balance' => $originalBalance,
+                    'paid_amount' => $paidAmount,
+                ]);
+                
+                // Calculate new balance remaining
+                $newBalanceRemaining = $newAmount - $paidAmount;
+                
+                \Log::info('Loan Update - New Balance', [
+                    'calculated_balance' => $newBalanceRemaining,
+                    'after_max' => max(0, $newBalanceRemaining),
+                ]);
+                
+                // Update amount and balance
+                $loan->amount = $newAmount;
+                $loan->balance_remaining = max(0, $newBalanceRemaining);
+                
+                // Update status based on new balance
+                if ($loan->balance_remaining <= 0) {
+                    $loan->status = 'paid';
+                    $loan->balance_remaining = 0;
+                } else if ($loan->balance_remaining < $newAmount && $paidAmount > 0) {
+                    $loan->status = 'partially_paid';
+                } else {
+                    $loan->status = 'unpaid';
+                }
+            }
+            
+            \Log::info('Loan Update - Final Status', [
+                'balance_remaining' => $loan->balance_remaining,
+                'status' => $loan->status,
+            ]);
+        } else if ($request->has('amount')) {
+            // Amount provided but same as current, just update it
+            $loan->amount = $request->amount;
+        }
+
+        // Save all changes
+        $loan->save();
+
+        \Log::info('Loan Update - After Save', [
+            'amount' => $loan->amount,
+            'balance_remaining' => $loan->balance_remaining,
+            'status' => $loan->status,
+        ]);
 
         return response()->json($loan);
     }
-
     /**
      * Remove the specified resource from storage.
      */

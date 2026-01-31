@@ -61,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('bank-accounts', BankAccountController::class);
 
     // Fund Sources
+    Route::post('/fund-sources/withdraw', [FundSourceController::class, 'withdraw']);
     Route::apiResource('fund-sources', FundSourceController::class);
 
     // Expenses

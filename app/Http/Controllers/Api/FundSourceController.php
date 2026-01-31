@@ -22,15 +22,7 @@ class FundSourceController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'source_name' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string',
-        ]);
-
-        $fundSource = $request->user()->fundSources()->create($request->all());
-
-        return response()->json($fundSource, 201);
+        return response()->json(['message' => 'Creating new fund sources is not allowed.'], 403);
     }
 
     /**
@@ -51,20 +43,7 @@ class FundSourceController extends Controller
      */
     public function update(Request $request, FundSource $fundSource)
     {
-        // Ensure user can only update their own fund sources
-        if ($fundSource->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $request->validate([
-            'source_name' => 'sometimes|required|string|max:255',
-            'amount' => 'sometimes|required|numeric|min:0',
-            'description' => 'nullable|string',
-        ]);
-
-        $fundSource->update($request->all());
-
-        return response()->json($fundSource);
+        return response()->json(['message' => 'Updating fund sources is not allowed.'], 403);
     }
 
     /**
@@ -72,22 +51,43 @@ class FundSourceController extends Controller
      */
     public function destroy(Request $request, FundSource $fundSource)
     {
-        // Ensure user can only delete their own fund sources
-        if ($fundSource->user_id !== $request->user()->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        return response()->json(['message' => 'Deleting fund sources is not allowed.'], 403);
+    }
 
-        // Check if there are any expenses linked to this fund source
-        if ($fundSource->expenses()->count() > 0) {
-            return response()->json([
-                'message' => 'Cannot delete. This fund source has transaction history.'
-            ], 422);
-        }
-
-        $fundSource->delete();
-
-        return response()->json([
-            'message' => 'Fund source deleted successfully',
+    /**
+     * Withdraw from Bank Account to Wallet
+     */
+    public function withdraw(Request $request)
+    {
+        $request->validate([
+            'bank_account_id' => 'required|exists:bank_accounts,id',
+            'amount' => 'required|numeric|min:0.01',
         ]);
+
+        $user = $request->user();
+        $bankAccount = $user->bankAccounts()->findOrFail($request->bank_account_id);
+        $wallet = $user->fundSources()->firstOrFail(); // Default wallet
+
+        if ($bankAccount->balance < $request->amount) {
+            return response()->json(['message' => 'Insufficient funds in bank account.'], 422);
+        }
+
+        try {
+            \DB::transaction(function () use ($bankAccount, $wallet, $request) {
+                // Deduct from bank
+                $bankAccount->decrement('balance', $request->amount);
+
+                // Add to wallet
+                $wallet->increment('amount', $request->amount);
+            });
+
+            return response()->json([
+                'message' => 'Withdrawal successful',
+                'wallet_balance' => $wallet->amount,
+                'bank_balance' => $bankAccount->balance,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Withdrawal failed.'], 500);
+        }
     }
 }

@@ -41,4 +41,18 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Configure the model factory.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (\App\Models\User $user) {
+            $user->fundSources()->create([
+                'source_name' => 'Wallet',
+                'amount' => 0,
+                'description' => 'Default wallet',
+            ]);
+        });
+    }
 }

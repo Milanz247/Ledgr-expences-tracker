@@ -33,6 +33,13 @@ class AuthController extends Controller
                 'password' => Hash::make($validated['password']),
             ]);
 
+            // Create default Wallet fund source
+            $user->fundSources()->create([
+                'source_name' => 'Wallet',
+                'amount' => 0,
+                'description' => 'Default wallet',
+            ]);
+
             \Log::info('User created successfully', ['user_id' => $user->id]);
 
             $token = $user->createToken('auth-token')->plainTextToken;
