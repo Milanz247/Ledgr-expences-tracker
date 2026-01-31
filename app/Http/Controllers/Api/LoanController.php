@@ -209,7 +209,7 @@ class LoanController extends Controller
 
         $request->validate([
             'amount' => 'required|numeric|min:0.01',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id', // Made nullable
             'bank_account_id' => 'nullable|exists:bank_accounts,id',
             'fund_source_id' => 'nullable|exists:fund_sources,id',
             'date' => 'required|date',
@@ -222,12 +222,40 @@ class LoanController extends Controller
             ], 422);
         }
 
+        // Check for sufficient funds
+        if ($request->bank_account_id) {
+            $bankAccount = $request->user()->bankAccounts()->find($request->bank_account_id);
+            if (!$bankAccount) {
+                return response()->json(['message' => 'Bank account not found.'], 404);
+            }
+            if ($bankAccount->balance < $request->amount) {
+                return response()->json(['message' => 'Insufficient funds in bank account.'], 422);
+            }
+        } elseif ($request->fund_source_id) {
+            $fundSource = $request->user()->fundSources()->find($request->fund_source_id);
+            if (!$fundSource) {
+                return response()->json(['message' => 'Wallet not found.'], 404);
+            }
+            if ($fundSource->amount < $request->amount) {
+                return response()->json(['message' => 'Insufficient funds in wallet.'], 422);
+            }
+        }
+
         DB::beginTransaction();
 
         try {
+            // Find or create the default 'Loan' category if category_id is not provided or we want to force it (as per user request: "default category Loan")
+            // The user request implies it should ALWAYS go to Loan category.
+            $loanCategory = \App\Models\Category::firstOrCreate(
+                ['name' => 'Loan', 'type' => 'expense'],
+                ['icon' => 'credit-card', 'color' => '#ef4444', 'user_id' => null] // Default attributes if creating
+            );
+
+            $categoryId = $loanCategory->id;
+
             $expense = Expense::create([
                 'user_id' => $request->user()->id,
-                'category_id' => $request->category_id,
+                'category_id' => $categoryId,
                 'bank_account_id' => $request->bank_account_id,
                 'fund_source_id' => $request->fund_source_id,
                 'loan_id' => $loan->id,
@@ -238,6 +266,7 @@ class LoanController extends Controller
 
             if ($request->bank_account_id) {
                 $bankAccount = $request->user()->bankAccounts()->find($request->bank_account_id);
+                // Validation already done above, but safe to check again or just proceed
                 if ($bankAccount) {
                     $bankAccount->balance -= $request->amount;
                     $bankAccount->save();
@@ -246,11 +275,13 @@ class LoanController extends Controller
 
             if ($request->fund_source_id) {
                 $fundSource = $request->user()->fundSources()->find($request->fund_source_id);
+                 // Validation already done above
                 if ($fundSource) {
                     $fundSource->amount -= $request->amount;
                     $fundSource->save();
                 }
             }
+
 
             $loan->balance_remaining -= $request->amount;
 

@@ -19,6 +19,7 @@ class CategorySeeder extends Seeder
             ['name' => 'Rent', 'icon' => 'home', 'type' => 'expense'],
             ['name' => 'Transportation', 'icon' => 'car', 'type' => 'expense'],
             ['name' => 'Utilities', 'icon' => 'zap', 'type' => 'expense'],
+            ['name' => 'Loan', 'icon' => 'credit-card', 'type' => 'expense'],
             ['name' => 'Entertainment', 'icon' => 'film', 'type' => 'expense'],
             ['name' => 'Healthcare', 'icon' => 'heart-pulse', 'type' => 'expense'],
             ['name' => 'Shopping', 'icon' => 'shopping-bag', 'type' => 'expense'],
