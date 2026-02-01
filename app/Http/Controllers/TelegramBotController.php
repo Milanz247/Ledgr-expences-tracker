@@ -260,6 +260,28 @@ class TelegramBotController extends Controller
     }
 
     /**
+     * Set Telegram Webhook.
+     */
+    public function setWebhook(Request $request)
+    {
+        $request->validate(['url' => 'required|url']);
+        $url = $request->input('url');
+
+        $bot = TelegramBot::first();
+        if (!$bot) return response()->json(['message' => 'Bot not connected.'], 404);
+
+        $response = Http::post("https://api.telegram.org/bot{$bot->token}/setWebhook?url={$url}");
+
+        if ($response->successful()) {
+            return response()->json(['message' => 'Webhook set successfully.']);
+        }
+
+        return response()->json([
+            'message' => 'Failed to set webhook: ' . ($response->json()['description'] ?? 'Unknown error'),
+        ], 400);
+    }
+
+    /**
      * Helper to get Chat ID from getUpdates
      */
     /**

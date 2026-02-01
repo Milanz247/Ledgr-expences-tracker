@@ -105,4 +105,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/telegram/topic', [\App\Http\Controllers\TelegramBotController::class, 'deleteTopic']);
     Route::post('/telegram/settings', [\App\Http\Controllers\TelegramBotController::class, 'updateSettings']);
     Route::post('/telegram/webhook', [\App\Http\Controllers\TelegramBotController::class, 'handleWebhook']);
+    Route::post('/telegram/webhook/set', [\App\Http\Controllers\TelegramBotController::class, 'setWebhook']);
 });
