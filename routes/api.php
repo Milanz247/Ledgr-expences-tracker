@@ -106,4 +106,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/telegram/settings', [\App\Http\Controllers\TelegramBotController::class, 'updateSettings']);
     Route::post('/telegram/webhook', [\App\Http\Controllers\TelegramBotController::class, 'handleWebhook']);
     Route::post('/telegram/webhook/set', [\App\Http\Controllers\TelegramBotController::class, 'setWebhook']);
+
+    // Debug Route (Temporary)
+    Route::get('/debug/logs', [\App\Http\Controllers\DebugController::class, 'getLogs']);
 });
