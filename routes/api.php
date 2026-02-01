@@ -92,4 +92,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Installments (EMI)
     Route::apiResource('installments', \App\Http\Controllers\Api\InstallmentController::class);
     Route::post('/installments/{installment}/pay', [\App\Http\Controllers\Api\InstallmentController::class, 'pay']);
+
+    // Telegram Bot
+    Route::post('/telegram/connect', [\App\Http\Controllers\TelegramBotController::class, 'connectBot']);
+    Route::get('/telegram/bot', [\App\Http\Controllers\TelegramBotController::class, 'getBot']);
+    Route::delete('/telegram/bot', [\App\Http\Controllers\TelegramBotController::class, 'disconnectBot']);
+    Route::post('/telegram/create-topics', [\App\Http\Controllers\TelegramBotController::class, 'createTopics']);
+    
+    // Topic Management
+    Route::post('/telegram/topic', [\App\Http\Controllers\TelegramBotController::class, 'createSingleTopic']);
+    Route::post('/telegram/topic/close', [\App\Http\Controllers\TelegramBotController::class, 'closeTopic']);
+    Route::delete('/telegram/topic', [\App\Http\Controllers\TelegramBotController::class, 'deleteTopic']);
 });
