@@ -29,4 +29,10 @@ class DebugController extends Controller
         \Illuminate\Support\Facades\Artisan::call('optimize:clear');
         return "Cache cleared!";
     }
+
+    public function testLog()
+    {
+        \Illuminate\Support\Facades\Log::info("TEST LOG ENTRY: The logging system is working.");
+        return "Log attempted. Check file now.";
+    }
 }
