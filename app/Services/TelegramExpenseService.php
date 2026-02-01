@@ -25,8 +25,17 @@ class TelegramExpenseService
         $text = $message['text'] ?? '';
         $messageThreadId = $message['message_thread_id'] ?? null;
 
+        Log::info("TelegramService: Processing message. user=$userId thread=$messageThreadId text='$text'");
+
         // Ensure we are in the correct thread
-        if ($messageThreadId != $this->bot->expense_topic_thread_id) {
+        // Strict check: both null (Main) or match
+        // Note: expense_topic_thread_id might be stored as string, cast to compare.
+        $configThreadId = $this->bot->expense_topic_thread_id;
+        
+        Log::info("TelegramService: Configured Thread ID: '$configThreadId'");
+
+        if ((string)$messageThreadId !== (string)$configThreadId) {
+            Log::info("TelegramService: Skipped - Thread ID mismatch. Got '$messageThreadId', Expected '$configThreadId'");
             return;
         }
 
@@ -35,6 +44,8 @@ class TelegramExpenseService
             ['bot_token' => $this->bot->token, 'chat_id' => $chatId, 'user_id' => $userId],
             ['step' => 'start']
         );
+
+        Log::info("TelegramService: Conversation Step: {$conversation->step}");
 
         // Cancel command
         if (strtolower($text) === '/cancel') {
@@ -61,6 +72,8 @@ class TelegramExpenseService
         if (is_numeric($text)) {
             $amount = floatval($text);
             
+            Log::info("TelegramService: Numeric amount received: $amount");
+
             // Save amount and move to next step
             $conversation->update([
                 'step' => 'awaiting_category',
@@ -76,6 +89,7 @@ class TelegramExpenseService
 
             $this->sendMessage($chatId, "Amount: {$amount}\nSelect or type a category:", $threadId, $keyboard);
         } else {
+            Log::info("TelegramService: Non-numeric message in start state.");
             // Ignore non-numeric messages in 'start' state to strictly listen for numbers
         }
     }

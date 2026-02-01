@@ -290,18 +290,22 @@ class TelegramBotController extends Controller
     public function handleWebhook(Request $request)
     {
         $data = $request->all(); // Log this for debugging if needed
+        \Illuminate\Support\Facades\Log::info('Telegram Webhook Received:', $data);
 
         // Extract Bot Token from Request URL or assume single bot for now?
         // Ideally webhook URL should be /telegram/webhook/{token} to identify bot.
         // For this implementation, we will assume single bot from DB.
         $bot = TelegramBot::first();
         if (!$bot) {
+            \Illuminate\Support\Facades\Log::error('Telegram Webhook: No bot configured in DB.');
             return response()->json(['message' => 'No bot configured'], 404);
         }
 
         if (isset($data['message'])) {
             $service = new \App\Services\TelegramExpenseService($bot);
             $service->handleMessage($data['message']);
+        } else {
+            \Illuminate\Support\Facades\Log::info('Telegram Webhook: No message object found in update.');
         }
 
         return response()->json(['status' => 'ok']);
