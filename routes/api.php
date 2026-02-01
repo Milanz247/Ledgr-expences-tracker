@@ -96,6 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Telegram Bot
     Route::post('/telegram/connect', [\App\Http\Controllers\TelegramBotController::class, 'connectBot']);
     Route::get('/telegram/bot', [\App\Http\Controllers\TelegramBotController::class, 'getBot']);
+    Route::post('/telegram/settings', [\App\Http\Controllers\TelegramBotController::class, 'updateSettings']);
     Route::delete('/telegram/bot', [\App\Http\Controllers\TelegramBotController::class, 'disconnectBot']);
     Route::post('/telegram/create-topics', [\App\Http\Controllers\TelegramBotController::class, 'createTopics']);
     

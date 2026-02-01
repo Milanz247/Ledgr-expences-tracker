@@ -7,6 +7,9 @@ use App\Models\Expense;
 use App\Models\Budget;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\TelegramBot;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class ExpenseController extends Controller
 {
@@ -146,6 +149,9 @@ class ExpenseController extends Controller
             // Load relationships
             $expense->load(['category', 'bankAccount']);
 
+            // Send Telegram Alert
+            $this->sendTelegramAlert($expense);
+
             return response()->json($expense, 201);
         }
 
@@ -173,6 +179,9 @@ class ExpenseController extends Controller
 
             // Load relationships
             $expense->load(['category', 'fundSource']);
+
+            // Send Telegram Alert
+            $this->sendTelegramAlert($expense);
 
             return response()->json($expense, 201);
         }
@@ -204,6 +213,9 @@ class ExpenseController extends Controller
 
             // Load relationships
             $expense->load(['category', 'loan']);
+
+            // Send Telegram Alert
+            $this->sendTelegramAlert($expense);
 
             return response()->json($expense, 201);
         }
@@ -319,6 +331,32 @@ class ExpenseController extends Controller
         if ($budget) {
             $budget->spent += $amount;
             $budget->save();
+        }
+    }
+
+    /**
+     * Send Telegram alert for new expense
+     */
+    private function sendTelegramAlert($expense)
+    {
+        try {
+            $bot = TelegramBot::where('notify_expenses', true)->first();
+            if (!$bot || !$bot->expense_topic_id) return;
+
+            $message = "💸 *New Expense Alert*\n\n" .
+                       "Amount: " . number_format($expense->amount, 2) . "\n" .
+                       "Category: " . ($expense->category->name ?? 'N/A') . "\n" .
+                       "Description: " . ($expense->description ?? 'N/A') . "\n" .
+                       "Date: " . $expense->date;
+            
+            Http::post("https://api.telegram.org/bot{$bot->token}/sendMessage", [
+                'chat_id' => $bot->chat_id,
+                'text'    => $message,
+                'parse_mode' => 'Markdown',
+                'message_thread_id' => $bot->expense_topic_id
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to send Telegram alert: " . $e->getMessage());
         }
     }
 }

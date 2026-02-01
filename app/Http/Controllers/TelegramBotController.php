@@ -99,6 +99,38 @@ class TelegramBotController extends Controller
     }
 
     /**
+     * Update bot settings.
+     */
+    public function updateSettings(Request $request)
+    {
+        $request->validate([
+            'notify_expenses' => 'boolean',
+            'expense_topic_id' => 'nullable|string',
+            'daily_summary' => 'boolean',
+            'daily_summary_time' => 'nullable|date_format:H:i',
+            'summary_topic_id' => 'nullable|string',
+        ]);
+
+        $bot = TelegramBot::first();
+        if (!$bot) {
+            return response()->json(['message' => 'Bot not connected.'], 404);
+        }
+
+        $bot->update($request->only([
+            'notify_expenses', 
+            'expense_topic_id', 
+            'daily_summary', 
+            'daily_summary_time', 
+            'summary_topic_id'
+        ]));
+
+        return response()->json([
+            'message' => 'Settings updated successfully.',
+            'data' => $bot,
+        ]);
+    }
+
+    /**
      * Get the current connected bot.
      */
     public function getBot()
