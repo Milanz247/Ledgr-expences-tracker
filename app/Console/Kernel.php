@@ -41,6 +41,10 @@ class Kernel extends ConsoleKernel
             ->dailyAt('02:00')
             ->timezone('Asia/Colombo')
             ->withoutOverlapping(10);
+
+        // Check for daily summary every minute
+        // The command itself checks if the current time matches the user's setting
+        $schedule->command('telegram:daily-summary')->everyMinute()->onOneServer();
     }
 
     /**
