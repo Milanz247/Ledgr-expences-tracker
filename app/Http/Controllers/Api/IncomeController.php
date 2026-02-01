@@ -6,9 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\Income;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\NotificationService;
 
 class IncomeController extends Controller
 {
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -144,6 +151,9 @@ class IncomeController extends Controller
 
             // Load relationships
             $income->load(['category', 'bankAccount', 'fundSource']);
+
+            // Trigger notifications
+            $this->notificationService->trigger($request->user()->id, 'income_created', $income->toArray());
 
             return response()->json($income, 201);
 

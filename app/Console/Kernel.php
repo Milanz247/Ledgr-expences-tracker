@@ -42,9 +42,9 @@ class Kernel extends ConsoleKernel
             ->timezone('Asia/Colombo')
             ->withoutOverlapping(10);
 
-        // Check for daily summary every minute
-        // The command itself checks if the current time matches the user's setting
-        $schedule->command('telegram:daily-summary')->everyMinute()->onOneServer();
+        // Process scheduled notifications every minute
+        // The command checks rule schedules internally
+        $schedule->command('notifications:process-scheduled')->everyMinute()->onOneServer();
     }
 
     /**

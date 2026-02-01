@@ -8,9 +8,16 @@ use App\Models\Expense;
 use App\Models\Repayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\NotificationService;
 
 class LoanController extends Controller
 {
+    protected $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -61,6 +68,9 @@ class LoanController extends Controller
             'due_date' => $request->due_date,
             'is_funding_source' => $request->is_funding_source ?? false,
         ]);
+
+        // Trigger notifications
+        $this->notificationService->trigger($request->user()->id, 'loan_created', $loan->toArray());
 
         return response()->json($loan, 201);
     }

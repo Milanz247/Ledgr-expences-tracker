@@ -136,6 +136,19 @@ class TelegramBotController extends Controller
     public function getBot()
     {
         $bot = TelegramBot::first();
+        
+        if ($bot && $bot->topic_data) {
+            // Transform topic_data to forum_topics format for frontend
+            $forumTopics = [];
+            foreach ($bot->topic_data as $name => $threadId) {
+                $forumTopics[] = [
+                    'name' => $name,
+                    'message_thread_id' => $threadId
+                ];
+            }
+            $bot->forum_topics = $forumTopics;
+        }
+        
         return response()->json([
             'data' => $bot,
         ]);
@@ -181,6 +194,16 @@ class TelegramBotController extends Controller
             $topicData[$name] = $threadId;
             $bot->topic_data = $topicData;
             $bot->save();
+
+            // Transform to forum_topics format for response
+            $forumTopics = [];
+            foreach ($topicData as $topicName => $topicThreadId) {
+                $forumTopics[] = [
+                    'name' => $topicName,
+                    'message_thread_id' => $topicThreadId
+                ];
+            }
+            $bot->forum_topics = $forumTopics;
 
             return response()->json([
                 'message' => "Topic '$name' created successfully.",
@@ -253,6 +276,17 @@ class TelegramBotController extends Controller
                     $bot->save();
                 }
             }
+
+            // Transform to forum_topics format for response
+            $forumTopics = [];
+            $topicData = $bot->topic_data ?? [];
+            foreach ($topicData as $topicName => $topicThreadId) {
+                $forumTopics[] = [
+                    'name' => $topicName,
+                    'message_thread_id' => $topicThreadId
+                ];
+            }
+            $bot->forum_topics = $forumTopics;
 
             return response()->json([
                 'message' => 'Topic deleted successfully.',
