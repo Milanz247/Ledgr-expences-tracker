@@ -12,9 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('telegram_bots', function (Blueprint $table) {
-            $table->string('expense_topic_thread_id')->nullable()->after('topic_data');
-            $table->string('default_payment_source_id')->nullable()->after('expense_topic_thread_id');
-            $table->string('default_payment_source_type')->nullable()->after('default_payment_source_id');
+            //
         });
     }
 
@@ -24,11 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('telegram_bots', function (Blueprint $table) {
-            $table->dropColumn([
-                'expense_topic_thread_id',
-                'default_payment_source_id',
-                'default_payment_source_type'
-            ]);
+            //
         });
     }
 };

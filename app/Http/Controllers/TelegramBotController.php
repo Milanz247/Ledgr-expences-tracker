@@ -234,84 +234,6 @@ class TelegramBotController extends Controller
     }
 
     /**
-     * Update expense logging settings.
-     */
-    public function updateSettings(Request $request)
-    {
-        $request->validate([
-            'expense_topic_thread_id' => 'nullable|string',
-            'default_payment_source_id' => 'nullable|string',
-            'default_payment_source_type' => 'nullable|string',
-        ]);
-
-        $bot = TelegramBot::first();
-        if (!$bot) return response()->json(['message' => 'Bot not connected.'], 404);
-
-        $bot->update([
-            'expense_topic_thread_id' => $request->input('expense_topic_thread_id'),
-            'default_payment_source_id' => $request->input('default_payment_source_id'),
-            'default_payment_source_type' => $request->input('default_payment_source_type'),
-        ]);
-
-        return response()->json([
-            'message' => 'Settings updated successfully.',
-            'data' => $bot
-        ]);
-    }
-
-    /**
-     * Set Telegram Webhook.
-     */
-    public function setWebhook(Request $request)
-    {
-        $request->validate(['url' => 'required|url']);
-        $url = $request->input('url');
-
-        $bot = TelegramBot::first();
-        if (!$bot) return response()->json(['message' => 'Bot not connected.'], 404);
-
-        $response = Http::post("https://api.telegram.org/bot{$bot->token}/setWebhook?url={$url}");
-
-        if ($response->successful()) {
-            return response()->json(['message' => 'Webhook set successfully.']);
-        }
-
-        return response()->json([
-            'message' => 'Failed to set webhook: ' . ($response->json()['description'] ?? 'Unknown error'),
-        ], 400);
-    }
-
-    /**
-     * Helper to get Chat ID from getUpdates
-     */
-    /**
-     * Handle incoming Telegram webhook updates.
-     */
-    public function handleWebhook(Request $request)
-    {
-        $data = $request->all(); // Log this for debugging if needed
-        \Illuminate\Support\Facades\Log::info('Telegram Webhook Received:', $data);
-
-        // Extract Bot Token from Request URL or assume single bot for now?
-        // Ideally webhook URL should be /telegram/webhook/{token} to identify bot.
-        // For this implementation, we will assume single bot from DB.
-        $bot = TelegramBot::first();
-        if (!$bot) {
-            \Illuminate\Support\Facades\Log::error('Telegram Webhook: No bot configured in DB.');
-            return response()->json(['message' => 'No bot configured'], 404);
-        }
-
-        if (isset($data['message'])) {
-            $service = new \App\Services\TelegramExpenseService($bot);
-            $service->handleMessage($data['message']);
-        } else {
-            \Illuminate\Support\Facades\Log::info('Telegram Webhook: No message object found in update.');
-        }
-
-        return response()->json(['status' => 'ok']);
-    }
-
-    /**
      * Helper to get Chat ID from getUpdates
      */
     private function getChatIdFromTelegram($token)
@@ -330,10 +252,7 @@ class TelegramBotController extends Controller
             $data = $response->json();
 
             if (empty($data['result'])) {
-                // throw new \Exception("No updates found. Please ensure the bot is added to the group and you've sent a 'Hi' message recently.");
-                // For connection, we just need basic validity. If no updates, we might warn but sometimes can proceed if we trust token.
-                // But to get Chat ID we NEED updates or manual entry.
-                throw new \Exception("No updates found. Send a message to the bot/group first.");
+                throw new \Exception("No updates found. Please ensure the bot is added to the group and you've sent a 'Hi' message recently.");
             }
 
             // Get the last update

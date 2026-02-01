@@ -10,9 +10,6 @@ class TelegramBot extends Model
         'token',
         'chat_id',
         'topic_data',
-        'expense_topic_thread_id',
-        'default_payment_source_id',
-        'default_payment_source_type',
     ];
 
     protected $casts = [

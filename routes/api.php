@@ -103,12 +103,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/telegram/topic', [\App\Http\Controllers\TelegramBotController::class, 'createSingleTopic']);
     Route::post('/telegram/topic/close', [\App\Http\Controllers\TelegramBotController::class, 'closeTopic']);
     Route::delete('/telegram/topic', [\App\Http\Controllers\TelegramBotController::class, 'deleteTopic']);
-    Route::post('/telegram/settings', [\App\Http\Controllers\TelegramBotController::class, 'updateSettings']);
-    // Debug Route (Temporary)
-    Route::get('/debug/logs', [\App\Http\Controllers\DebugController::class, 'getLogs']);
-    Route::get('/debug/clear', [\App\Http\Controllers\DebugController::class, 'clearCache']);
-    Route::get('/debug/test-log', [\App\Http\Controllers\DebugController::class, 'testLog']);
 });
-
-// Telegram Webhook (Must be Public)
-Route::post('/telegram/webhook', [\App\Http\Controllers\TelegramBotController::class, 'handleWebhook']);
