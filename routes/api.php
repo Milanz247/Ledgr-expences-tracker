@@ -109,4 +109,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Debug Route (Temporary)
     Route::get('/debug/logs', [\App\Http\Controllers\DebugController::class, 'getLogs']);
+    Route::get('/debug/clear', [\App\Http\Controllers\DebugController::class, 'clearCache']);
 });

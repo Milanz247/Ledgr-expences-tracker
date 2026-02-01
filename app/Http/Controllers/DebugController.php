@@ -23,4 +23,10 @@ class DebugController extends Controller
         
         return response(implode("\n", $lines))->header('Content-Type', 'text/plain');
     }
+
+    public function clearCache()
+    {
+        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+        return "Cache cleared!";
+    }
 }
