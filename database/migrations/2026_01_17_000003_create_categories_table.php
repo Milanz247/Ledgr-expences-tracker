@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('name');
             $table->string('icon')->nullable();
+            $table->string('color', 7)->default('#3b82f6');
             $table->enum('type', ['income', 'expense'])->default('expense');
             $table->timestamps();
         });

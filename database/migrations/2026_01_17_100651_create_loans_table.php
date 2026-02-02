@@ -20,6 +20,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->enum('status', ['unpaid', 'partially_paid', 'paid'])->default('unpaid');
             $table->date('due_date')->nullable();
+            $table->boolean('is_funding_source')->default(false);
             $table->timestamps();
         });
     }

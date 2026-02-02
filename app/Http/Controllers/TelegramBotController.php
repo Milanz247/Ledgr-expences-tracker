@@ -236,12 +236,15 @@ class TelegramBotController extends Controller
             'message_thread_id' => $threadId,
         ]);
 
-        if ($response->successful()) {
+        $responseData = $response->json();
+        $description = $responseData['description'] ?? '';
+
+        if ($response->successful() || str_contains($description, 'TOPIC_NOT_MODIFIED')) {
             return response()->json(['message' => 'Topic closed successfully.']);
         }
 
         return response()->json([
-            'message' => 'Failed to close topic: ' . ($response->json()['description'] ?? 'Unknown error'),
+            'message' => 'Failed to close topic: ' . ($description ?? 'Unknown error'),
         ], 400);
     }
 
@@ -252,7 +255,8 @@ class TelegramBotController extends Controller
     {
         $request->validate([
             'thread_id' => 'required',
-            'name' => 'nullable|string', // Pass name to remove from local storage
+            'name' => 'nullable',
+            'force_local' => 'nullable',
         ]);
 
         $bot = TelegramBot::first();
@@ -260,26 +264,51 @@ class TelegramBotController extends Controller
 
         $threadId = $request->input('thread_id');
         $name = $request->input('name');
+        $forceLocal = $request->boolean('force_local', false);
+
+        Log::info("Attempting to delete topic", [
+            'thread_id' => $threadId,
+            'name' => $name,
+            'chat_id' => $bot->chat_id,
+            'force_local' => $forceLocal
+        ]);
 
         $response = Http::post("https://api.telegram.org/bot{$bot->token}/deleteForumTopic", [
             'chat_id' => $bot->chat_id,
             'message_thread_id' => $threadId,
         ]);
 
-        if ($response->successful()) {
-            // Remove from local storage if name is provided
-            if ($name) {
-                $topicData = $bot->topic_data ?? [];
-                if (isset($topicData[$name])) {
-                    unset($topicData[$name]);
-                    $bot->topic_data = $topicData;
-                    $bot->save();
+        $responseData = $response->json();
+        Log::info("Telegram deleteForumTopic response", ['response' => $responseData]);
+
+        $telegramSuccess = $response->successful() && ($responseData['ok'] ?? false);
+        
+        // Remove from local storage if Telegram succeeded OR force_local is true
+        if ($telegramSuccess || $forceLocal) {
+            $topicData = $bot->topic_data ?? [];
+            $removed = false;
+            
+            if ($name && isset($topicData[$name])) {
+                unset($topicData[$name]);
+                $removed = true;
+            } else {
+                // Try to find and remove by thread_id
+                foreach ($topicData as $topicName => $topicThreadId) {
+                    if ($topicThreadId == $threadId) {
+                        unset($topicData[$topicName]);
+                        $removed = true;
+                        break;
+                    }
                 }
+            }
+            
+            if ($removed) {
+                $bot->topic_data = $topicData;
+                $bot->save();
             }
 
             // Transform to forum_topics format for response
             $forumTopics = [];
-            $topicData = $bot->topic_data ?? [];
             foreach ($topicData as $topicName => $topicThreadId) {
                 $forumTopics[] = [
                     'name' => $topicName,
@@ -288,14 +317,22 @@ class TelegramBotController extends Controller
             }
             $bot->forum_topics = $forumTopics;
 
+            $message = $telegramSuccess 
+                ? 'Topic deleted successfully.' 
+                : 'Topic removed from local storage (Telegram deletion failed: ' . ($responseData['description'] ?? 'Unknown') . ')';
+
             return response()->json([
-                'message' => 'Topic deleted successfully.',
+                'message' => $message,
                 'data' => $bot
             ]);
         }
 
+        $errorMessage = $responseData['description'] ?? 'Unknown error';
+        Log::error("Failed to delete topic", ['error' => $errorMessage, 'response' => $responseData]);
+
         return response()->json([
-            'message' => 'Failed to delete topic: ' . ($response->json()['description'] ?? 'Unknown error'),
+            'message' => 'Failed to delete topic: ' . $errorMessage,
+            'error_details' => $errorMessage
         ], 400);
     }
 

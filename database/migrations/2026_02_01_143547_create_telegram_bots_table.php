@@ -15,7 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('token')->unique();
             $table->string('chat_id')->nullable();
-            $table->json('topic_data')->nullable(); // Store topic name => thread_id
+            $table->json('topic_data')->nullable();
+            $table->boolean('notify_expenses')->default(false);
+            $table->string('expense_topic_id')->nullable();
+            $table->boolean('daily_summary')->default(false);
+            $table->time('daily_summary_time')->default('20:00');
+            $table->string('summary_topic_id')->nullable();
             $table->timestamps();
         });
     }

@@ -17,13 +17,13 @@ use App\Http\Controllers\Api\ReportController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
-Route::post('/register', [AuthController::class, 'register']);
+// Route::post('/register', [AuthController::class, 'register']); // Registration disabled
 Route::post('/login', [AuthController::class, 'login']);
 
-// Password Reset routes
-Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
-Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
-Route::post('/resend-otp', [PasswordResetController::class, 'resendOtp']);
+// Password Reset routes - DISABLED
+// Route::post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
+// Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
+// Route::post('/resend-otp', [PasswordResetController::class, 'resendOtp']);
 
 // Protected routes (require authentication)
 Route::middleware('auth:sanctum')->group(function () {
@@ -49,9 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Exports
     Route::get('/export/transactions', [\App\Http\Controllers\Api\ExportController::class, 'exportTransactions']);
 
-    // Report Settings
-    Route::get('/report-settings', [\App\Http\Controllers\Api\ReportSettingController::class, 'show']);
-    Route::post('/report-settings', [\App\Http\Controllers\Api\ReportSettingController::class, 'update']);
+    // Report Settings Routes REMOVED
 
     // Categories - Everyone can view, but only authenticated users can manage
     Route::apiResource('categories', CategoryController::class);
