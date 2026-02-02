@@ -49,10 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Exports
     Route::get('/export/transactions', [\App\Http\Controllers\Api\ExportController::class, 'exportTransactions']);
 
-    // Report Settings
-    Route::get('/report-settings', [\App\Http\Controllers\Api\ReportSettingsController::class, 'getSettings']);
-    Route::post('/report-settings', [\App\Http\Controllers\Api\ReportSettingsController::class, 'updateSettings']);
-    Route::post('/report-settings/send-test', [\App\Http\Controllers\Api\ReportSettingsController::class, 'sendTestEmail']);
+    // Report Settings Routes REMOVED
 
     // Categories - Everyone can view, but only authenticated users can manage
     Route::apiResource('categories', CategoryController::class);
@@ -104,12 +101,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/telegram/topic', [\App\Http\Controllers\TelegramBotController::class, 'createSingleTopic']);
     Route::post('/telegram/topic/close', [\App\Http\Controllers\TelegramBotController::class, 'closeTopic']);
     Route::delete('/telegram/topic', [\App\Http\Controllers\TelegramBotController::class, 'deleteTopic']);
-    
-    
-    // Notification Rules
-    Route::get('/notification-rules', [\App\Http\Controllers\NotificationRuleController::class, 'index']);
-    Route::post('/notification-rules', [\App\Http\Controllers\NotificationRuleController::class, 'store']);
-    Route::put('/notification-rules/{id}', [\App\Http\Controllers\NotificationRuleController::class, 'update']);
-    Route::delete('/notification-rules/{id}', [\App\Http\Controllers\NotificationRuleController::class, 'destroy']);
-    Route::post('/notification-rules/{id}/test', [\App\Http\Controllers\NotificationRuleController::class, 'test']);
 });

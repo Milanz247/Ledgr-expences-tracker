@@ -7,16 +7,16 @@ use App\Models\Expense;
 use App\Models\Budget;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
-use App\Services\NotificationService;
+use App\Services\TelegramService;
 use Illuminate\Support\Facades\Log;
 
 class ExpenseController extends Controller
 {
-    protected $notificationService;
+    protected $telegramService;
 
-    public function __construct(NotificationService $notificationService)
+    public function __construct(TelegramService $telegramService)
     {
-        $this->notificationService = $notificationService;
+        $this->telegramService = $telegramService;
     }
     /**
      * Display a listing of the resource with filtering and pagination.
@@ -155,7 +155,7 @@ class ExpenseController extends Controller
             $expense->load(['category', 'bankAccount']);
 
             // Trigger notifications
-            $this->notificationService->trigger($request->user()->id, 'expense_created', $expense->toArray());
+            $this->telegramService->sendExpenseNotification($expense->toArray());
 
             return response()->json($expense, 201);
         }
@@ -186,7 +186,7 @@ class ExpenseController extends Controller
             $expense->load(['category', 'fundSource']);
 
             // Trigger notifications
-            $this->notificationService->trigger($request->user()->id, 'expense_created', $expense->toArray());
+            $this->telegramService->sendExpenseNotification($expense->toArray());
 
             return response()->json($expense, 201);
         }
@@ -220,7 +220,7 @@ class ExpenseController extends Controller
             $expense->load(['category', 'loan']);
 
             // Trigger notifications
-            $this->notificationService->trigger($request->user()->id, 'expense_created', $expense->toArray());
+            $this->telegramService->sendExpenseNotification($expense->toArray());
 
             return response()->json($expense, 201);
         }
@@ -339,24 +339,8 @@ class ExpenseController extends Controller
 
             // Check for alerts (only when adding expense, amount > 0)
             if ($amount > 0) {
-                try {
-                    if ($budget->is_exceeded) {
-                        $this->notificationService->trigger($userId, 'budget_exceeded', [
-                            'category_name' => $budget->category->name ?? 'Category',
-                            'budget_amount' => (float)$budget->total_budget,
-                            'spent_amount' => (float)$budget->spent
-                        ]);
-                    } elseif ($budget->is_near_limit && $budget->alert_at_90_percent) {
-                        $this->notificationService->trigger($userId, 'budget_warning', [
-                            'category_name' => $budget->category->name ?? 'Category',
-                            'budget_amount' => (float)$budget->total_budget,
-                            'spent_amount' => (float)$budget->spent,
-                            'percentage' => number_format($budget->percentage_used, 1)
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error("Budget alert failed: " . $e->getMessage());
-                }
+                 // Budget alerts removed as per "Remove Notifications" request. 
+                 // Telegram Service currently only handles simple expense notifications.
             }
         }
     }
