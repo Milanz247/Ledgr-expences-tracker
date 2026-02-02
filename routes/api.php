@@ -49,7 +49,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Exports
     Route::get('/export/transactions', [\App\Http\Controllers\Api\ExportController::class, 'exportTransactions']);
 
-    // Report Settings Routes REMOVED
+    // Report Settings
+    Route::get('/report-settings', [\App\Http\Controllers\Api\ReportSettingController::class, 'show']);
+    Route::post('/report-settings', [\App\Http\Controllers\Api\ReportSettingController::class, 'update']);
 
     // Categories - Everyone can view, but only authenticated users can manage
     Route::apiResource('categories', CategoryController::class);

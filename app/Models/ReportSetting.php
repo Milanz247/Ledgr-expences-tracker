@@ -12,8 +12,11 @@ class ReportSetting extends Model
 
     protected $fillable = [
         'user_id',
-        'report_email',
+        'report_email', // Keeping for backward compat, though we might not use it
         'frequency',
+        'daily_report_time',
+        'telegram_topic_id',
+        'telegram_chat_id',
         'is_enabled',
         'last_sent_at',
     ];

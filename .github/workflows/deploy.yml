@@ -31,6 +31,17 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21"
+
+      - name: Build Go Notification Service
+        run: |
+          cd go-services
+          go mod tidy
+          go build -o ../bin/notifier ./cmd/notifier
+
       - name: Deploy with rsync
         run: |
           # Adjust the target path if your domain is different
@@ -40,6 +51,7 @@ jobs:
             --exclude='.github/' \
             --exclude='node_modules/' \
             --exclude='storage/' \
+            --exclude='go-services/' \
             . ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/htdocs/${{ secrets.DOMAIN_NAME }}/
 
       - name: Fix Permissions & Run Migrations
@@ -51,4 +63,7 @@ jobs:
           php artisan route:cache && \
           php artisan view:cache && \
           php artisan db:seed --class=CategorySeeder --force && \
-          (crontab -l 2>/dev/null | grep -q 'schedule:run' || (crontab -l 2>/dev/null; echo '* * * * * cd /home/${{ secrets.SSH_USER }}/htdocs/${{ secrets.DOMAIN_NAME }} && php artisan schedule:run >> /dev/null 2>&1') | crontab -)"
+          (crontab -l 2>/dev/null | grep -q 'schedule:run' || (crontab -l 2>/dev/null; echo '* * * * * cd /home/${{ secrets.SSH_USER }}/htdocs/${{ secrets.DOMAIN_NAME }} && php artisan schedule:run >> /dev/null 2>&1') | crontab -) && \
+          chmod +x bin/notifier && \
+          (pkill -f 'bin/notifier' || true) && \
+          nohup ./bin/notifier > /dev/null 2>&1 &"
