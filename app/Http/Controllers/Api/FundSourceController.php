@@ -57,11 +57,15 @@ class FundSourceController extends Controller
     /**
      * Withdraw from Bank Account to Wallet
      */
+    /**
+     * Withdraw from Bank Account to Wallet
+     */
     public function withdraw(Request $request)
     {
         $request->validate([
             'bank_account_id' => 'required|exists:bank_accounts,id',
             'amount' => 'required|numeric|min:0.01',
+            'atm_type' => 'nullable|in:same_atm,other_atm',
         ]);
 
         $user = $request->user();
@@ -73,21 +77,59 @@ class FundSourceController extends Controller
         }
 
         try {
-            \DB::transaction(function () use ($bankAccount, $wallet, $request) {
+            \DB::transaction(function () use ($bankAccount, $wallet, $request, $user) {
                 // Deduct from bank
                 $bankAccount->decrement('balance', $request->amount);
 
                 // Add to wallet
                 $wallet->increment('amount', $request->amount);
+
+                // Handle ATM Fee using Settings
+                if ($request->has('atm_type')) {
+                    $setting = \App\Models\Setting::where('user_id', $user->id)
+                        ->where('group', 'general')
+                        ->first();
+
+                    if ($setting) {
+                        $fee = 0;
+                        $data = $setting->payload;
+
+                        if ($request->atm_type === 'same_atm') {
+                            $fee = $data['same_atm_fee'] ?? 0;
+                        } elseif ($request->atm_type === 'other_atm') {
+                            $fee = $data['other_atm_fee'] ?? 0;
+                        }
+
+                        if ($fee > 0) {
+                            // Deduct Fee from Bank
+                            $bankAccount->decrement('balance', $fee);
+
+                            // Find or Create 'Bank Fee' Category
+                            $feeCategory = \App\Models\Category::firstOrCreate(
+                                ['name' => 'Bank Fee', 'user_id' => $user->id],
+                                ['type' => 'expense', 'icon' => 'Bank', 'color' => '#000000']
+                            );
+
+                            // Create Expense Record
+                            $user->expenses()->create([
+                                'category_id' => $feeCategory->id,
+                                'bank_account_id' => $bankAccount->id,
+                                'amount' => $fee,
+                                'description' => 'ATM Withdrawal Fee (' . ucfirst(str_replace('_', ' ', $request->atm_type)) . ')',
+                                'date' => now(),
+                            ]);
+                        }
+                    }
+                }
             });
 
             return response()->json([
                 'message' => 'Withdrawal successful',
                 'wallet_balance' => $wallet->amount,
-                'bank_balance' => $bankAccount->balance,
+                'bank_balance' => $bankAccount->fresh()->balance,
             ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Withdrawal failed.'], 500);
+            return response()->json(['message' => 'Withdrawal failed.', 'error' => $e->getMessage()], 500);
         }
     }
 }

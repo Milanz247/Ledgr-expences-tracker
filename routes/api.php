@@ -101,4 +101,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/telegram/topic', [\App\Http\Controllers\TelegramBotController::class, 'createSingleTopic']);
     Route::post('/telegram/topic/close', [\App\Http\Controllers\TelegramBotController::class, 'closeTopic']);
     Route::delete('/telegram/topic', [\App\Http\Controllers\TelegramBotController::class, 'deleteTopic']);
+
+    // General Settings
+    Route::get('/settings/{group}', [\App\Http\Controllers\Api\SettingsController::class, 'show']);
+    Route::post('/settings/{group}', [\App\Http\Controllers\Api\SettingsController::class, 'update']);
 });
