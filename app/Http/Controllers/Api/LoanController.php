@@ -56,23 +56,43 @@ class LoanController extends Controller
             'amount' => 'required|numeric|min:0',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
-            'is_funding_source' => 'nullable|boolean',
+            // 'is_funding_source' => 'nullable|boolean', // Deprecated in favor of explicit deposit
+            'deposit_to' => 'required|in:bank,wallet',
+            'bank_account_id' => 'nullable|required_if:deposit_to,bank|exists:bank_accounts,id',
+            'fund_source_id' => 'nullable|required_if:deposit_to,wallet|exists:fund_sources,id',
         ]);
 
-        $loan = $request->user()->loans()->create([
-            'lender_name' => $request->lender_name,
-            'amount' => $request->amount,
-            'balance_remaining' => $request->amount,
-            'description' => $request->description,
-            'status' => 'unpaid',
-            'due_date' => $request->due_date,
-            'is_funding_source' => $request->is_funding_source ?? false,
-        ]);
+        DB::transaction(function () use ($request) {
+            // Create the Loan
+            $loan = $request->user()->loans()->create([
+                'lender_name' => $request->lender_name,
+                'amount' => $request->amount,
+                'balance_remaining' => $request->amount,
+                'description' => $request->description,
+                'status' => 'unpaid',
+                'due_date' => $request->due_date,
+                'is_funding_source' => false, // No longer used as a flag, we just deposit it
+            ]);
 
-        // Trigger notifications
-        $this->notificationService->trigger($request->user()->id, 'loan_created', $loan->toArray());
+            // Deposit logic
+            if ($request->deposit_to === 'bank') {
+                $bankAccount = $request->user()->bankAccounts()->findOrFail($request->bank_account_id);
+                $bankAccount->increment('balance', $request->amount);
+            } elseif ($request->deposit_to === 'wallet') {
+                $fundSource = $request->user()->fundSources()->findOrFail($request->fund_source_id);
+                $fundSource->increment('amount', $request->amount);
+            }
 
-        return response()->json($loan, 201);
+            // Trigger notifications
+            $this->notificationService->trigger($request->user()->id, 'loan_created', $loan->toArray());
+        });
+
+        // We need to return something, but since we are inside a transaction closure, we can't directly return to the controller response from within.
+        // However, response() helpers works if we just let the transaction finish.
+        // To simplify, I'll move the return outside or use DB::transaction return capability.
+        return response()->json(['message' => 'Loan created and funds deposited successfully'], 201);
+
+
     }
 
     /**
@@ -224,6 +244,7 @@ class LoanController extends Controller
             'fund_source_id' => 'nullable|exists:fund_sources,id',
             'date' => 'required|date',
             'description' => 'nullable|string',
+            'atm_type' => 'nullable|in:same_atm,other_atm',
         ]);
 
         if ($request->amount > $loan->balance_remaining) {
@@ -238,8 +259,31 @@ class LoanController extends Controller
             if (!$bankAccount) {
                 return response()->json(['message' => 'Bank account not found.'], 404);
             }
-            if ($bankAccount->balance < $request->amount) {
-                return response()->json(['message' => 'Insufficient funds in bank account.'], 422);
+            
+            // Calculate potential fee if ATM withdrawal
+            $fee = 0;
+            if ($request->has('atm_type') && in_array($request->atm_type, ['same_atm', 'other_atm'])) {
+                 $setting = \App\Models\Setting::where('user_id', $request->user()->id)
+                    ->where('group', 'general')
+                    ->first();
+                
+                \Log::info('Loan Repayment - Settings Found', ['setting_exists' => (bool)$setting, 'payload' => $setting ? $setting->payload : null]);
+
+                if ($setting) {
+                    $data = $setting->payload;
+                    // Fallback to ATM fee if Bank fee is not configured yet
+                    if ($request->atm_type === 'same_atm') {
+                        $fee = $data['same_bank_fee'] ?? $data['same_atm_fee'] ?? 0;
+                    } elseif ($request->atm_type === 'other_atm') {
+                        $fee = $data['other_bank_fee'] ?? $data['other_atm_fee'] ?? 0;
+                    }
+                }
+            }
+            
+            \Log::info('Loan Repayment - Calculated Fee', ['fee' => $fee, 'atm_type' => $request->atm_type]);
+
+            if ($bankAccount->balance < ($request->amount + $fee)) {
+                return response()->json(['message' => 'Insufficient funds in bank account (including fees).'], 422);
             }
         } elseif ($request->fund_source_id) {
             $fundSource = $request->user()->fundSources()->find($request->fund_source_id);
@@ -254,11 +298,13 @@ class LoanController extends Controller
         DB::beginTransaction();
 
         try {
-            // Find or create the default 'Loan' category if category_id is not provided or we want to force it (as per user request: "default category Loan")
-            // The user request implies it should ALWAYS go to Loan category.
+            // Auto-generate description if not provided
+            $description = $request->description ?? "Repayment to {$loan->lender_name}";
+
+            // Find or create the default 'Loan' category if category_id is not provided or we want to force it
             $loanCategory = \App\Models\Category::firstOrCreate(
-                ['name' => 'Loan', 'type' => 'expense'],
-                ['icon' => 'credit-card', 'color' => '#ef4444', 'user_id' => null] // Default attributes if creating
+                ['name' => 'Loan', 'type' => 'expense', 'user_id' => $request->user()->id],
+                ['icon' => 'credit-card', 'color' => '#ef4444']
             );
 
             $categoryId = $loanCategory->id;
@@ -270,16 +316,34 @@ class LoanController extends Controller
                 'fund_source_id' => $request->fund_source_id,
                 'loan_id' => $loan->id,
                 'amount' => $request->amount,
-                'description' => $request->description ?? "Repayment to {$loan->lender_name}",
+                'description' => $description,
                 'date' => $request->date,
             ]);
 
             if ($request->bank_account_id) {
                 $bankAccount = $request->user()->bankAccounts()->find($request->bank_account_id);
-                // Validation already done above, but safe to check again or just proceed
                 if ($bankAccount) {
-                    $bankAccount->balance -= $request->amount;
-                    $bankAccount->save();
+                    $bankAccount->decrement('balance', $request->amount);
+
+                    // Handle ATM Fee Deduction
+                    if (isset($fee) && $fee > 0) {
+                         $bankAccount->decrement('balance', $fee);
+
+                         // Find or Create 'Bank Fee' Category
+                         $feeCategory = \App\Models\Category::firstOrCreate(
+                            ['name' => 'Bank Fee', 'user_id' => $request->user()->id],
+                            ['type' => 'expense', 'icon' => 'Bank', 'color' => '#000000']
+                         );
+
+                         // Create Expense Record for Fee
+                         $request->user()->expenses()->create([
+                            'category_id' => $feeCategory->id,
+                            'bank_account_id' => $bankAccount->id,
+                            'amount' => $fee,
+                            'description' => 'Bank Transfer Fee (' . ucfirst(str_replace('_', ' ', $request->atm_type)) . ')',
+                            'date' => now(),
+                         ]);
+                    }
                 }
             }
 
@@ -311,7 +375,7 @@ class LoanController extends Controller
                 'expense_id' => $expense->id,
                 'amount' => $request->amount,
                 'payment_date' => $request->date,
-                'description' => $request->description,
+                'description' => $description,
             ]);
 
             DB::commit();
