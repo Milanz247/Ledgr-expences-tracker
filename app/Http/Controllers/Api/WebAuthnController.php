@@ -215,7 +215,7 @@ class WebAuthnController extends Controller
 
         // Verify challenge - check both user-specific and global cache
         $challenge = Cache::get('webauthn_auth_challenge_' . $user->email);
-        
+
         if (!$challenge) {
             // Try global challenge (for empty email requests)
             $challenge = Cache::get('webauthn_auth_challenge_global');
