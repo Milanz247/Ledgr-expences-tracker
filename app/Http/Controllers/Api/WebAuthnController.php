@@ -120,28 +120,45 @@ class WebAuthnController extends Controller
     public function authenticationOptions(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'nullable|email',
             'rp_id' => 'nullable|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $email = $request->email;
 
-        if (!$user) {
-            // Don't reveal if user exists
-            return response()->json(['message' => 'User not found'], 404);
-        }
+        // If no email provided, allow any credential (discoverable credentials)
+        if ($email) {
+            $user = User::where('email', $email)->first();
 
-        $credentials = $user->webAuthnCredentials()->get();
+            if (!$user) {
+                // Don't reveal if user exists
+                return response()->json(['message' => 'User not found'], 404);
+            }
 
-        if ($credentials->isEmpty()) {
-            return response()->json(['message' => 'No biometric credentials found'], 404);
+            $credentials = $user->webAuthnCredentials()->get();
+
+            if ($credentials->isEmpty()) {
+                return response()->json(['message' => 'No biometric credentials found'], 404);
+            }
+        } else {
+            // For empty email, get all credentials to allow any user to authenticate
+            $credentials = WebAuthnCredential::all();
+
+            if ($credentials->isEmpty()) {
+                return response()->json(['message' => 'No biometric credentials registered in system'], 404);
+            }
         }
 
         $challenge = Str::random(32);
 
-        // Store challenge with email for verification (valid for 2 minutes)
-        Cache::put('webauthn_auth_challenge_' . $request->email, $challenge, 120);
-        Cache::put('webauthn_auth_email_' . $challenge, $request->email, 120);
+        // Store challenge for verification (valid for 2 minutes)
+        if ($email) {
+            Cache::put('webauthn_auth_challenge_' . $email, $challenge, 120);
+            Cache::put('webauthn_auth_email_' . $challenge, $email, 120);
+        } else {
+            // Store challenge globally for any user
+            Cache::put('webauthn_auth_challenge_global', $challenge, 120);
+        }
 
         // Use RP ID from request (frontend domain) or fallback to Origin header
         $rpId = $request->input('rp_id');
