@@ -213,8 +213,13 @@ class WebAuthnController extends Controller
 
         $user = $credential->user;
 
-        // Verify challenge
+        // Verify challenge - check both user-specific and global cache
         $challenge = Cache::get('webauthn_auth_challenge_' . $user->email);
+        
+        if (!$challenge) {
+            // Try global challenge (for empty email requests)
+            $challenge = Cache::get('webauthn_auth_challenge_global');
+        }
 
         if (!$challenge) {
             return response()->json(['message' => 'Invalid or expired challenge'], 422);
@@ -229,8 +234,9 @@ class WebAuthnController extends Controller
         // Generate token
         $token = $user->createToken('auth-token')->plainTextToken;
 
-        // Clear cache
+        // Clear cache - try both
         Cache::forget('webauthn_auth_challenge_' . $user->email);
+        Cache::forget('webauthn_auth_challenge_global');
         Cache::forget('webauthn_auth_email_' . $challenge);
 
         return response()->json([
