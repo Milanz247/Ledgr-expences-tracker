@@ -17,7 +17,8 @@ use App\Http\Controllers\Api\ReportController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
-
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 // Protected routes (require authentication)
 Route::middleware('auth:sanctum')->group(function () {
@@ -39,7 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports', [ReportController::class, 'index']);
     Route::get('/reports/expenses-by-category', [ReportController::class, 'expensesByCategory']);
     Route::get('/reports/expenses-by-category-month', [ReportController::class, 'expensesByCategoryMonth']);
-    
+
     // Exports
     Route::get('/export/transactions', [\App\Http\Controllers\Api\ExportController::class, 'exportTransactions']);
 
@@ -90,7 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/telegram/settings', [\App\Http\Controllers\TelegramBotController::class, 'updateSettings']);
     Route::delete('/telegram/bot', [\App\Http\Controllers\TelegramBotController::class, 'disconnectBot']);
     Route::post('/telegram/create-topics', [\App\Http\Controllers\TelegramBotController::class, 'createTopics']);
-    
+
     // Topic Management
     Route::post('/telegram/topic', [\App\Http\Controllers\TelegramBotController::class, 'createSingleTopic']);
     Route::post('/telegram/topic/close', [\App\Http\Controllers\TelegramBotController::class, 'closeTopic']);
