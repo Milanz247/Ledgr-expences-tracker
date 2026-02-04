@@ -24,11 +24,18 @@ class WebAuthnController extends Controller
         // Store challenge in cache for verification (valid for 2 minutes)
         Cache::put('webauthn_challenge_' . $user->id, $challenge, 120);
 
+        // Get RP ID from current request host (handles localhost properly)
+        $rpId = $request->getHost();
+        // Remove port if present
+        if (strpos($rpId, ':') !== false) {
+            $rpId = explode(':', $rpId)[0];
+        }
+
         return response()->json([
             'challenge' => base64_encode($challenge),
             'rp' => [
                 'name' => config('app.name', 'Ledgr'),
-                'id' => parse_url(config('app.url'), PHP_URL_HOST),
+                'id' => $rpId,
             ],
             'user' => [
                 'id' => base64_encode((string)$user->id),
@@ -120,9 +127,16 @@ class WebAuthnController extends Controller
         Cache::put('webauthn_auth_challenge_' . $request->email, $challenge, 120);
         Cache::put('webauthn_auth_email_' . $challenge, $request->email, 120);
 
+        // Get RP ID from current request host (handles localhost properly)
+        $rpId = $request->getHost();
+        // Remove port if present
+        if (strpos($rpId, ':') !== false) {
+            $rpId = explode(':', $rpId)[0];
+        }
+
         return response()->json([
             'challenge' => base64_encode($challenge),
-            'rpId' => parse_url(config('app.url'), PHP_URL_HOST),
+            'rpId' => $rpId,
             'allowCredentials' => $credentials->map(function ($cred) {
                 return [
                     'type' => 'public-key',
