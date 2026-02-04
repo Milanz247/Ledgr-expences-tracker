@@ -15,9 +15,16 @@ class TelegramBot extends Model
         'daily_summary',
         'daily_summary_time',
         'summary_topic_id',
+        'monthly_summary',
+        'monthly_summary_day',
+        'monthly_summary_time',
+        'monthly_summary_topic_id',
     ];
 
     protected $casts = [
         'topic_data' => 'array',
+        'daily_summary' => 'boolean',
+        'monthly_summary' => 'boolean',
+        'monthly_summary_day' => 'integer',
     ];
 }

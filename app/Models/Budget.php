@@ -17,6 +17,8 @@ class Budget extends Model
         'month',
         'year',
         'alert_at_90_percent',
+        'alert_sent_25',
+        'alert_sent_exceeded',
     ];
 
     protected $casts = [
@@ -25,6 +27,8 @@ class Budget extends Model
         'rollover_amount' => 'decimal:2',
         'rollover_enabled' => 'boolean',
         'alert_at_90_percent' => 'boolean',
+        'alert_sent_25' => 'boolean',
+        'alert_sent_exceeded' => 'boolean',
         'month' => 'integer',
         'year' => 'integer',
     ];

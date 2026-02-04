@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\PaymentSourceController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RecurringTransactionController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\ExpenseTemplateController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -58,6 +59,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Expenses
     Route::apiResource('expenses', ExpenseController::class);
+
+    // Expense Templates
+    Route::get('/expense-templates', [ExpenseTemplateController::class, 'index']);
+    Route::post('/expense-templates', [ExpenseTemplateController::class, 'store']);
+    Route::put('/expense-templates/{template}', [ExpenseTemplateController::class, 'update']);
+    Route::delete('/expense-templates/{template}', [ExpenseTemplateController::class, 'destroy']);
+    Route::post('/expense-templates/{template}/use', [ExpenseTemplateController::class, 'useTemplate']);
 
     // Incomes
     Route::apiResource('incomes', IncomeController::class);

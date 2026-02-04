@@ -12,39 +12,23 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Process recurring transactions daily at midnight
-        $schedule->command('recurring:process')
-            ->daily()
-            ->timezone('Asia/Colombo')
-            ->withoutOverlapping(5);
-
-        // Send daily reports at 9 PM
-        $schedule->command('reports:send --frequency=daily')
-            ->dailyAt('21:00')
-            ->timezone('Asia/Colombo')
-            ->withoutOverlapping(10);
-
-        // Send weekly reports every Monday at 9 AM
-        $schedule->command('reports:send --frequency=weekly')
-            ->weeklyOn(1, '09:00') // Monday
-            ->timezone('Asia/Colombo')
-            ->withoutOverlapping(10);
-
-        // Send monthly reports on the 1st of each month at 9 AM
-        $schedule->command('reports:send --frequency=monthly')
-            ->monthlyOn(1, '09:00')
-            ->timezone('Asia/Colombo')
-            ->withoutOverlapping(10);
-
-        // Process recurring expenses daily at 02:00
+        // Process recurring transactions daily at 02:00
         $schedule->command('recurring:process')
             ->dailyAt('02:00')
             ->timezone('Asia/Colombo')
             ->withoutOverlapping(10);
 
-        // Process scheduled notifications every minute
-        // The command checks rule schedules internally
-        $schedule->command('notifications:process-scheduled')->everyMinute()->onOneServer();
+        // Telegram Daily Summary - runs every minute, command checks time internally
+        $schedule->command('telegram:daily-summary')
+            ->everyMinute()
+            ->timezone('Asia/Colombo')
+            ->withoutOverlapping(5);
+
+        // Telegram Monthly Summary - runs every minute, command checks day/time internally
+        $schedule->command('telegram:monthly-summary')
+            ->everyMinute()
+            ->timezone('Asia/Colombo')
+            ->withoutOverlapping(5);
     }
 
     /**

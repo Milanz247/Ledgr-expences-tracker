@@ -70,7 +70,7 @@ class TelegramBotController extends Controller
         foreach ($topics as $topic) {
             // Check if topic already exists in our records to avoid duplicates (optional logic)
             // For now, we'll try to create it or skip if we handled that logic
-            
+
             $response = Http::post("https://api.telegram.org/bot{$token}/createForumTopic", [
                 'chat_id' => $bot->chat_id,
                 'name'    => $topic
@@ -109,6 +109,10 @@ class TelegramBotController extends Controller
             'daily_summary' => 'boolean',
             'daily_summary_time' => 'nullable|date_format:H:i',
             'summary_topic_id' => 'nullable|string',
+            'monthly_summary' => 'boolean',
+            'monthly_summary_day' => 'nullable|integer|min:1|max:28',
+            'monthly_summary_time' => 'nullable|date_format:H:i',
+            'monthly_summary_topic_id' => 'nullable|string',
         ]);
 
         $bot = TelegramBot::first();
@@ -117,11 +121,15 @@ class TelegramBotController extends Controller
         }
 
         $bot->update($request->only([
-            'notify_expenses', 
-            'expense_topic_id', 
-            'daily_summary', 
-            'daily_summary_time', 
-            'summary_topic_id'
+            'notify_expenses',
+            'expense_topic_id',
+            'daily_summary',
+            'daily_summary_time',
+            'summary_topic_id',
+            'monthly_summary',
+            'monthly_summary_day',
+            'monthly_summary_time',
+            'monthly_summary_topic_id'
         ]));
 
         return response()->json([
@@ -136,7 +144,7 @@ class TelegramBotController extends Controller
     public function getBot()
     {
         $bot = TelegramBot::first();
-        
+
         if ($bot && $bot->topic_data) {
             // Transform topic_data to forum_topics format for frontend
             $forumTopics = [];
@@ -148,7 +156,7 @@ class TelegramBotController extends Controller
             }
             $bot->forum_topics = $forumTopics;
         }
-        
+
         return response()->json([
             'data' => $bot,
         ]);
@@ -180,7 +188,7 @@ class TelegramBotController extends Controller
         }
 
         $name = $request->input('name');
-        
+
         $response = Http::post("https://api.telegram.org/bot{$bot->token}/createForumTopic", [
             'chat_id' => $bot->chat_id,
             'name'    => $name,
@@ -188,7 +196,7 @@ class TelegramBotController extends Controller
 
         if ($response->successful()) {
             $threadId = $response->json()['result']['message_thread_id'];
-            
+
             // Update topic data
             $topicData = $bot->topic_data ?? [];
             $topicData[$name] = $threadId;
@@ -282,12 +290,12 @@ class TelegramBotController extends Controller
         Log::info("Telegram deleteForumTopic response", ['response' => $responseData]);
 
         $telegramSuccess = $response->successful() && ($responseData['ok'] ?? false);
-        
+
         // Remove from local storage if Telegram succeeded OR force_local is true
         if ($telegramSuccess || $forceLocal) {
             $topicData = $bot->topic_data ?? [];
             $removed = false;
-            
+
             if ($name && isset($topicData[$name])) {
                 unset($topicData[$name]);
                 $removed = true;
@@ -301,7 +309,7 @@ class TelegramBotController extends Controller
                     }
                 }
             }
-            
+
             if ($removed) {
                 $bot->topic_data = $topicData;
                 $bot->save();
@@ -317,8 +325,8 @@ class TelegramBotController extends Controller
             }
             $bot->forum_topics = $forumTopics;
 
-            $message = $telegramSuccess 
-                ? 'Topic deleted successfully.' 
+            $message = $telegramSuccess
+                ? 'Topic deleted successfully.'
                 : 'Topic removed from local storage (Telegram deletion failed: ' . ($responseData['description'] ?? 'Unknown') . ')';
 
             return response()->json([
@@ -343,7 +351,7 @@ class TelegramBotController extends Controller
     {
         try {
             $response = Http::get("https://api.telegram.org/bot{$token}/getUpdates");
-            
+
             if ($response->failed()) {
                 Log::error("Telegram getUpdates failed: " . $response->body());
                 if ($response->status() === 401) {
@@ -362,8 +370,8 @@ class TelegramBotController extends Controller
             $lastUpdate = end($data['result']);
 
             // Logic to find chat_id from message or my_chat_member
-            $chatId = $lastUpdate['message']['chat']['id'] 
-                   ?? $lastUpdate['my_chat_member']['chat']['id'] 
+            $chatId = $lastUpdate['message']['chat']['id']
+                   ?? $lastUpdate['my_chat_member']['chat']['id']
                    ?? null;
 
             if (!$chatId) {
