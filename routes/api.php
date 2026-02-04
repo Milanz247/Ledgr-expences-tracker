@@ -14,12 +14,17 @@ use App\Http\Controllers\Api\PaymentSourceController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RecurringTransactionController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\WebAuthnController;
 use App\Http\Controllers\ExpenseTemplateController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// WebAuthn public routes
+Route::post('/webauthn/authentication-options', [WebAuthnController::class, 'authenticationOptions']);
+Route::post('/webauthn/authenticate', [WebAuthnController::class, 'authenticate']);
 
 // Protected routes (require authentication)
 Route::middleware('auth:sanctum')->group(function () {
@@ -33,6 +38,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
     Route::delete('/profile/avatar', [ProfileController::class, 'removeAvatar']);
     Route::put('/profile/sidebar-settings', [ProfileController::class, 'updateSidebarSettings']);
+
+    // WebAuthn protected routes
+    Route::post('/webauthn/register-options', [WebAuthnController::class, 'registerOptions']);
+    Route::post('/webauthn/register', [WebAuthnController::class, 'register']);
+    Route::get('/webauthn/credentials', [WebAuthnController::class, 'getCredentials']);
+    Route::delete('/webauthn/credentials/{id}', [WebAuthnController::class, 'deleteCredential']);
 
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);

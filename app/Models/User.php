@@ -99,6 +99,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the WebAuthn credentials for the user.
+     */
+    public function webAuthnCredentials()
+    {
+        return $this->hasMany(WebAuthnCredential::class);
+    }
+
+    /**
      * Get the budgets for the user.
      */
     public function budgets()
