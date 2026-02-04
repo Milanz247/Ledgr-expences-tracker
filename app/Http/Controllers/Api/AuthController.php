@@ -13,56 +13,7 @@ class AuthController extends Controller
     /**
      * Register a new user
      */
-    public function register(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8|confirmed',
-            ]);
 
-            \Log::info('Registration attempt', [
-                'name' => $validated['name'],
-                'email' => $validated['email']
-            ]);
-
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
-            ]);
-
-            // Create default Wallet fund source
-            $user->fundSources()->create([
-                'source_name' => 'Wallet',
-                'amount' => 0,
-                'description' => 'Default wallet',
-            ]);
-
-            \Log::info('User created successfully', ['user_id' => $user->id]);
-
-            $token = $user->createToken('auth-token')->plainTextToken;
-
-            return response()->json([
-                'user' => $user,
-                'token' => $token,
-            ], 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Registration validation failed', [
-                'errors' => $e->errors()
-            ]);
-            throw $e;
-        } catch (\Exception $e) {
-            \Log::error('Registration failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'message' => 'Registration failed: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
 
     /**
      * Login user
