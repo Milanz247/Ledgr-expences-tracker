@@ -19,13 +19,28 @@ class WebAuthnController extends Controller
     {
         $user = $request->user();
 
+        $request->validate([
+            'rp_id' => 'nullable|string',
+        ]);
+
         $challenge = Str::random(32);
 
         // Store challenge in cache for verification (valid for 2 minutes)
         Cache::put('webauthn_challenge_' . $user->id, $challenge, 120);
 
-        // Get RP ID from current request host (handles localhost properly)
-        $rpId = $request->getHost();
+        // Use RP ID from request (frontend domain) or fallback to Origin header
+        $rpId = $request->input('rp_id');
+        if (!$rpId) {
+            // Get from Origin header if not provided
+            $origin = $request->header('Origin') ?: $request->header('Referer');
+            if ($origin) {
+                $rpId = parse_url($origin, PHP_URL_HOST);
+            }
+        }
+        // Fallback to request host
+        if (!$rpId) {
+            $rpId = $request->getHost();
+        }
         // Remove port if present
         if (strpos($rpId, ':') !== false) {
             $rpId = explode(':', $rpId)[0];
@@ -106,6 +121,7 @@ class WebAuthnController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
+            'rp_id' => 'nullable|string',
         ]);
 
         $user = User::where('email', $request->email)->first();
@@ -127,8 +143,19 @@ class WebAuthnController extends Controller
         Cache::put('webauthn_auth_challenge_' . $request->email, $challenge, 120);
         Cache::put('webauthn_auth_email_' . $challenge, $request->email, 120);
 
-        // Get RP ID from current request host (handles localhost properly)
-        $rpId = $request->getHost();
+        // Use RP ID from request (frontend domain) or fallback to Origin header
+        $rpId = $request->input('rp_id');
+        if (!$rpId) {
+            // Get from Origin header if not provided
+            $origin = $request->header('Origin') ?: $request->header('Referer');
+            if ($origin) {
+                $rpId = parse_url($origin, PHP_URL_HOST);
+            }
+        }
+        // Fallback to request host
+        if (!$rpId) {
+            $rpId = $request->getHost();
+        }
         // Remove port if present
         if (strpos($rpId, ':') !== false) {
             $rpId = explode(':', $rpId)[0];
