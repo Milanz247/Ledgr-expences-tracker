@@ -1,0 +1,2 @@
+# This file ensures the views directory is tracked by git
+# Laravel requires this directory to exist for view caching
