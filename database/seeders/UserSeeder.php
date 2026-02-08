@@ -22,5 +22,15 @@ class UserSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+
+        User::firstOrCreate(
+            ['email' => 'janmi@gmail.com'],
+            [
+                'name' => 'Janmi',
+                'email' => 'janmi@gmail.com',
+                'password' => Hash::make('janmilan'),
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }
