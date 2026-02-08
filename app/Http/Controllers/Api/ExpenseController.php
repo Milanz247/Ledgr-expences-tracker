@@ -294,6 +294,35 @@ class ExpenseController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        // Check if this expense is a Loan Repayment
+        $repayment = \App\Models\Repayment::where('expense_id', $expense->id)->first();
+
+        // Handle Loan Repayment Logic (If it's a repayment)
+        if ($repayment) {
+            $loan = $repayment->loan;
+            if ($loan) {
+                // Restore loan balance (Increase the debt back since we are cancelling the payment)
+                $loan->balance_remaining += $expense->amount;
+
+                // Ensure balance doesn't exceed original amount (sanity check)
+                if ($loan->balance_remaining > $loan->amount) {
+                     // Log warning?
+                }
+
+                // Update status logic
+                // If balance is restored to full amount -> unpaid
+                if ($loan->balance_remaining >= $loan->amount) {
+                    $loan->status = 'unpaid';
+                } elseif ($loan->balance_remaining > 0) {
+                    $loan->status = 'partially_paid';
+                } else {
+                    $loan->status = 'paid'; // Should unlikely happen on deletion
+                }
+                
+                $loan->save();
+            }
+        }
+
         // Restore balance to appropriate source
         if ($expense->bank_account_id) {
             $bankAccount = $expense->bankAccount;
@@ -308,7 +337,9 @@ class ExpenseController extends Controller
         }
 
         // Update budget spent amount (subtract)
-        $this->updateBudgetSpent($request->user()->id, $expense->category_id, $expense->date, -$expense->amount);
+        if ($expense->category_id) {
+             $this->updateBudgetSpent($request->user()->id, $expense->category_id, $expense->date, -$expense->amount);
+        }
 
         $expense->delete();
 
